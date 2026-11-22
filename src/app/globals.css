@@ -1,0 +1,25 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-canvas font-sans text-ink antialiased; }
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-white p-5; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand text-white hover:bg-brand-600; }
+  .btn-outline { @apply btn border-[1.5px] border-line-strong bg-white text-ink hover:bg-canvas; }
+  .btn-tint { @apply btn bg-brand-50 text-brand-600 hover:bg-[#d8e1ff]; }
+  .btn-danger { @apply btn border-[1.5px] border-[#b4231a] bg-white text-[#a61e14] hover:bg-bad-bg; }
+  .input { @apply w-full rounded-xl border-[1.5px] border-line-strong bg-white px-4 py-2.5 text-sm outline-none placeholder:text-ink-soft/80 focus:border-brand focus:ring-2 focus:ring-brand/20; }
+  .label { @apply mb-1.5 block text-sm font-bold; }
+  .muted { @apply text-sm text-ink-soft; }
+  .badge { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold; }
+  .chip { @apply inline-flex items-center rounded-full border-[1.5px] border-line-strong bg-white px-4 py-2 text-sm font-bold text-ink transition hover:bg-canvas; }
+  .chip-on { @apply inline-flex items-center rounded-full border-[1.5px] border-brand bg-brand px-4 py-2 text-sm font-bold text-white; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.08em]; }
+  .h-page { @apply text-3xl font-extrabold tracking-tight; }
+  .h-card { @apply text-lg font-extrabold; }
+  .th { @apply whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-ink-soft; }
+}
