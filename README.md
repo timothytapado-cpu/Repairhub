@@ -29,6 +29,12 @@ Plan rules follow the Figma "Plan usage" panel: Basic = 2 technicians, 50 invent
 - A shop is public as soon as it registers with a **name, a map location, a contact number and an email**. Nothing else is needed to be found by customers.
 - Documents only decide the **Verified badge**. An admin can give the badge (only if a permit was submitted) or decline it; a declined shop stays live without the badge and can resubmit.
 
+## Walk-ins and repair photos
+- **Walk-in customers:** a technician (My jobs > "Walk-in customer?") or the owner (Ticket board > "New walk-in ticket") logs a customer's name, phone, device and problem. It becomes a normal ticket on the board, tagged Walk-in.
+- **Before photo:** required to start. The technician photographs the phone opened up; "Start repair" stays locked until it is uploaded.
+- **After photo:** required to mark the repair Ready. Customers with an account see both photos on their repair tracker.
+- Both rules are also enforced in the database (`require_repair_photos` trigger). Photos live in the private `repair-photos` bucket; only shop staff and the ticket's own customer can read them.
+
 ## Demo flow
 1. Register a shop (pin the location on the map) -> sign in as admin -> approve it.
 2. Owner: add a technician under Employees. Switch to Pro under Subscription to unlock Inventory.

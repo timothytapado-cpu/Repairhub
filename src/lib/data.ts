@@ -1,6 +1,25 @@
 import { supabaseServer } from "./supabase/server";
 import type { FinderShop } from "@/components/use-finder";
 
+export type TicketPhotos = { before?: string; after?: string };
+
+/** Short-lived signed links to each ticket's before/after photos (the bucket is private). */
+export async function loadTicketPhotos(sb: Awaited<ReturnType<typeof supabaseServer>>, ticketIds: string[]): Promise<Record<string, TicketPhotos>> {
+  const out: Record<string, TicketPhotos> = {};
+  if (!ticketIds.length) return out;
+  const { data: rows } = await sb.from("ticket_photos").select("ticket_id,kind,path").in("ticket_id", ticketIds);
+  if (!rows?.length) return out;
+  const { data: signed } = await sb.storage.from("repair-photos").createSignedUrls(
+    rows.map((r) => r.path),
+    3600,
+  );
+  rows.forEach((r, i) => {
+    const url = signed?.[i]?.signedUrl;
+    if (url) (out[r.ticket_id] ??= {})[r.kind as "before" | "after"] = url;
+  });
+  return out;
+}
+
 export async function loadFinderShops(): Promise<FinderShop[]> {
   const sb = await supabaseServer();
   const { data: shops } = await sb

@@ -209,13 +209,90 @@ export async function setTicketStatus(f: FormData) {
   const p = await getProfile();
   const id = s(f, "id");
   const status = s(f, "status");
-  await sb.from("tickets").update({ status, estimate_note: s(f, "note") || undefined }).eq("id", id);
+  const from = s(f, "from") || `/owner/tickets/${id}`;
+  // The database refuses "In progress" without a before photo and "Ready" without an after photo; its message is shown to the user.
+  const { error } = await sb.from("tickets").update({ status, estimate_note: s(f, "note") || undefined }).eq("id", id);
+  if (error) back(from, "error", error.message);
   await sb.from("ticket_events").insert({ ticket_id: id, actor_id: p!.id, kind: "status", body: `Status changed to ${status.replace("_", " ")}` });
   const note = s(f, "note");
   if (note) await sb.from("ticket_events").insert({ ticket_id: id, actor_id: p!.id, kind: "note", body: note });
   revalidatePath("/technician");
   revalidatePath("/owner/tickets");
   revalidatePath(`/owner/tickets/${id}`);
+  back(from, "msg", "Status updated.");
+}
+
+/* ---------- walk-in customers and repair photos ---------- */
+
+/** Staff logs a customer who walked in (no account). The ticket then appears on the board like any other. */
+export async function createWalkIn(f: FormData) {
+  const p = await getProfile();
+  const sb = await supabaseServer();
+  const failPath = s(f, "from") || (p!.role === "owner" ? "/owner/tickets/new" : "/technician");
+  const name = s(f, "customer_name");
+  const phone = s(f, "customer_phone");
+  if (!name) back(failPath, "error", "Enter the customer's name.");
+  if (phone.replace(/\D/g, "").length < 7) back(failPath, "error", "Enter a phone number so the shop can reach the customer.");
+  if (!s(f, "device") || !s(f, "issue")) back(failPath, "error", "Enter the phone model and what needs fixing.");
+  const tech = p!.role === "technician" ? p!.id : s(f, "technician_id") || null;
+  const { data: t, error } = await sb
+    .from("tickets")
+    .insert({
+      shop_id: p!.shop_id,
+      customer_id: null,
+      customer_name: name,
+      customer_phone: phone,
+      source: "walk_in",
+      technician_id: tech,
+      status: tech ? "received" : "new",
+      device: s(f, "device"),
+      issue: s(f, "issue"),
+      details: s(f, "details"),
+    })
+    .select("id")
+    .single();
+  if (error || !t) back(failPath, "error", error?.message ?? "Could not log the walk-in.");
+  await sb.from("ticket_events").insert({ ticket_id: t!.id, actor_id: p!.id, kind: "assign", body: `Walk-in logged by ${p!.full_name}` });
+  revalidatePath("/technician");
+  revalidatePath("/owner/tickets");
+  const msg = "Walk-in logged. Add the before photo (phone opened up) to start the repair.";
+  redirect(p!.role === "owner" ? `/owner/tickets/${t!.id}?msg=${encodeURIComponent(msg)}` : `/technician?t=${t!.id}&msg=${encodeURIComponent(msg)}`);
+}
+
+/** Technician (or owner) uploads the "before" (phone opened up) or "after" (repaired) photo. A new photo replaces the old one. */
+export async function uploadTicketPhoto(f: FormData) {
+  const p = await getProfile();
+  const sb = await supabaseServer();
+  const id = s(f, "id");
+  const kind = s(f, "kind") === "after" ? "after" : "before";
+  const from = s(f, "from") || "/technician";
+  const file = f.get("photo");
+  if (!(file instanceof File) || file.size === 0) back(from, "error", "Choose a photo first, or take one with your camera.");
+  const img = file as File;
+  if (!["image/jpeg", "image/png", "image/webp"].includes(img.type)) back(from, "error", "The photo must be a JPG, PNG or WebP image.");
+  if (img.size > 8 * 1024 * 1024) back(from, "error", "The photo must be 8 MB or smaller.");
+  const { data: t } = await sb.from("tickets").select("id,shop_id,status").eq("id", id).single();
+  if (!t) back(from, "error", "Ticket not found.");
+  if (["done", "cancelled"].includes(t!.status)) back(from, "error", "This ticket is closed.");
+
+  const ext = img.type === "image/png" ? "png" : img.type === "image/webp" ? "webp" : "jpg";
+  const path = `${t!.shop_id}/${id}/${kind}-${crypto.randomUUID()}.${ext}`;
+  const up = await sb.storage.from("repair-photos").upload(path, img, { contentType: img.type });
+  if (up.error) back(from, "error", "Upload failed: " + up.error.message);
+
+  // replace the previous photo of this kind
+  const { data: old } = await sb.from("ticket_photos").select("id,path").eq("ticket_id", id).eq("kind", kind);
+  if (old?.length) {
+    await sb.storage.from("repair-photos").remove(old.map((o) => o.path));
+    await sb.from("ticket_photos").delete().in("id", old.map((o) => o.id));
+  }
+  const { error } = await sb.from("ticket_photos").insert({ ticket_id: id, kind, path, uploaded_by: p!.id });
+  if (error) back(from, "error", error.message);
+  await sb.from("ticket_events").insert({ ticket_id: id, actor_id: p!.id, kind: "note", body: kind === "before" ? "Before photo added (phone opened up)" : "After photo added (repair finished)" });
+  revalidatePath("/technician");
+  revalidatePath(`/owner/tickets/${id}`);
+  revalidatePath(`/customer/tickets/${id}`);
+  back(from, "msg", kind === "before" ? "Before photo saved. You can start the repair." : "After photo saved. You can mark the repair ready.");
 }
 
 export async function assignTechnician(f: FormData) {

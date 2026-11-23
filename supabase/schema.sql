@@ -259,6 +259,63 @@ create policy "owner updates product image" on storage.objects for update to aut
 create policy "owner deletes product image" on storage.objects for delete to authenticated
   using (bucket_id = 'product-images' and (storage.foldername(name))[1] = my_shop()::text and my_role() = 'owner');
 
+-- Walk-in customers: tickets logged by shop staff for people without an account
+alter table tickets add column if not exists customer_phone text not null default '';
+alter table tickets add column if not exists source text not null default 'online';   -- 'online' | 'walk_in'
+drop policy if exists "customer creates ticket" on tickets;
+create policy "customer or staff creates ticket" on tickets for insert with check (
+  customer_id = auth.uid() or (shop_id = my_shop() and my_role() in ('owner','technician'))
+);
+
+-- Before/after repair photos
+create table if not exists ticket_photos (
+  id uuid primary key default gen_random_uuid(),
+  ticket_id uuid not null references tickets(id) on delete cascade,
+  kind text not null check (kind in ('before','after')),
+  path text not null,
+  uploaded_by uuid references profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists ticket_photos_ticket on ticket_photos(ticket_id, kind);
+alter table ticket_photos enable row level security;
+create policy "photos visible with ticket" on ticket_photos for select using (
+  exists (select 1 from tickets t where t.id = ticket_id and (t.customer_id = auth.uid() or t.shop_id = my_shop()))
+);
+create policy "staff add photos" on ticket_photos for insert with check (
+  my_role() in ('owner','technician') and exists (select 1 from tickets t where t.id = ticket_id and t.shop_id = my_shop())
+);
+create policy "staff replace photos" on ticket_photos for delete using (
+  my_role() in ('owner','technician') and exists (select 1 from tickets t where t.id = ticket_id and t.shop_id = my_shop())
+);
+-- Private bucket: shop staff and the ticket's own customer can read; only shop staff can write.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('repair-photos','repair-photos', false, 8388608, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public = false, file_size_limit = 8388608, allowed_mime_types = array['image/jpeg','image/png','image/webp'];
+create policy "staff upload repair photos" on storage.objects for insert to authenticated
+  with check (bucket_id = 'repair-photos' and (storage.foldername(name))[1] = my_shop()::text and my_role() in ('owner','technician'));
+create policy "staff delete repair photos" on storage.objects for delete to authenticated
+  using (bucket_id = 'repair-photos' and (storage.foldername(name))[1] = my_shop()::text and my_role() in ('owner','technician'));
+create policy "staff and customer read repair photos" on storage.objects for select to authenticated
+  using (bucket_id = 'repair-photos' and (
+    (storage.foldername(name))[1] = my_shop()::text
+    or exists (select 1 from tickets t where t.id::text = (storage.foldername(name))[2] and t.customer_id = auth.uid())
+  ));
+-- A repair cannot start without a before photo, or be marked ready without an after photo.
+create or replace function require_repair_photos() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'in_progress' and old.status is distinct from 'in_progress'
+     and not exists (select 1 from ticket_photos where ticket_id = new.id and kind = 'before') then
+    raise exception 'Upload the before photo (the phone opened up) before starting the repair.';
+  end if;
+  if new.status = 'ready' and old.status is distinct from 'ready'
+     and not exists (select 1 from ticket_photos where ticket_id = new.id and kind = 'after') then
+    raise exception 'Upload the after photo before marking the repair ready.';
+  end if;
+  return new;
+end $$;
+create trigger tickets_photos before update on tickets for each row execute function require_repair_photos();
+revoke execute on function require_repair_photos() from public, anon, authenticated;
+
 -- Basic plan: at most 100 tickets a month per shop (Figma "Plan usage")
 create or replace function check_ticket_limit() returns trigger language plpgsql security definer set search_path = public as $$
 declare p plan_type; n int;

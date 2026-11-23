@@ -2,15 +2,17 @@ import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { getProfile } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { loadTicketPhotos } from "@/lib/data";
 import { sendMessage, setTicketStatus, takeRequest } from "@/app/actions";
-import { Badge, PageHead } from "@/components/ui";
+import { Badge, Flash, PageHead } from "@/components/ui";
+import { PhotoStep, WalkInForm } from "@/components/repair-photos";
 import { fmtDate } from "@/lib/util";
 
 export const dynamic = "force-dynamic";
 
-const NEXT: Record<string, { to: string; label: string; hint: string }> = {
-  received: { to: "in_progress", label: "Start repair", hint: "Starting moves the ticket to In progress and tells the customer." },
-  in_progress: { to: "ready", label: "Mark as Ready for pickup", hint: "The customer is told the phone is ready. After pickup and payment you mark the ticket Done." },
+const NEXT: Record<string, { to: string; label: string; hint: string; needs?: "before" | "after" }> = {
+  received: { to: "in_progress", label: "Start repair", hint: "Starting moves the ticket to In progress and tells the customer.", needs: "before" },
+  in_progress: { to: "ready", label: "Mark as Ready for pickup", hint: "The customer is told the phone is ready. After pickup and payment you mark the ticket Done.", needs: "after" },
   ready: { to: "done", label: "Mark picked up and paid", hint: "Closes the ticket as Done." },
 };
 const STAGES = [
@@ -21,7 +23,7 @@ const STAGES = [
 ];
 const ORDER = ["received", "in_progress", "ready", "done"];
 
-export default async function MyJobs({ searchParams }: { searchParams: Promise<{ t?: string }> }) {
+export default async function MyJobs({ searchParams }: { searchParams: Promise<{ t?: string; msg?: string; error?: string }> }) {
   const sp = await searchParams;
   const p = await getProfile();
   const sb = await supabaseServer();
@@ -30,15 +32,31 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
     sb.from("tickets").select("*").eq("technician_id", p!.id).not("status", "in", "(done,cancelled)").order("updated_at", { ascending: false }),
   ]);
   const sel = mine?.find((t) => t.id === sp.t) ?? mine?.[0] ?? null;
-  const { data: events } = sel ? await sb.from("ticket_events").select("*, profiles(full_name)").eq("ticket_id", sel.id).order("created_at") : { data: [] as any[] };
+  const [{ data: events }, photos] = sel
+    ? await Promise.all([sb.from("ticket_events").select("*, profiles(full_name)").eq("ticket_id", sel.id).order("created_at"), loadTicketPhotos(sb, [sel.id])])
+    : [{ data: [] as any[] }, {} as Awaited<ReturnType<typeof loadTicketPhotos>>];
   const nx = sel ? NEXT[sel.status] : null;
   const stageIdx = sel ? ORDER.indexOf(sel.status) : -1;
+  const pics = sel ? photos[sel.id] ?? {} : {};
+  const blocked = nx?.needs ? !pics[nx.needs] : false;
+  const from = sel ? `/technician?t=${sel.id}` : "/technician";
 
   return (
     <>
       <PageHead title="My jobs" sub={`${p!.full_name} · ${mine?.length ?? 0} open ticket${mine?.length === 1 ? "" : "s"} of 10. Take new repairs below, then work them here.`} />
+      <Flash msg={sp.msg} error={sp.error} />
 
-      <section className="card !p-6">
+      <details className="card !p-6" open={!!sp.error && !sel}>
+        <summary className="cursor-pointer list-none">
+          <span className="h-card">Walk-in customer?</span>
+          <span className="muted ml-2">Log them here so they are on the board like any other repair.</span>
+        </summary>
+        <div className="mt-4 border-t border-line pt-4">
+          <WalkInForm from="/technician" />
+        </div>
+      </details>
+
+      <section className="card mt-5 !p-6">
         <h2 className="h-card">Available repairs</h2>
         <p className="muted mt-1">New requests for the shop. Take one and it becomes your ticket. The shop owner can see who took it.</p>
         <ul className="mt-3 divide-y divide-line border-t border-line">
@@ -73,7 +91,10 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
               </div>
               <p className="mt-2 font-extrabold">{t.device}</p>
               <p className="text-sm">{t.issue}</p>
-              <p className="muted mt-1">Updated {fmtDate(t.updated_at)}</p>
+              <p className="muted mt-1">
+                {t.source === "walk_in" && <span className="mr-1 rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-bold text-brand-600">Walk-in</span>}
+                Updated {fmtDate(t.updated_at)}
+              </p>
             </Link>
           ))}
           {!mine?.length && <div className="card muted">Nothing assigned yet.</div>}
@@ -88,7 +109,9 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
                   {sel.device} · {sel.issue}
                 </h2>
                 <p className="muted mt-1">
-                  Customer: {sel.customer_name} · Requested {fmtDate(sel.created_at)}
+                  Customer: {sel.customer_name}
+                  {sel.customer_phone ? ` · ${sel.customer_phone}` : ""}
+                  {sel.source === "walk_in" ? " · Walk-in" : ""} · Requested {fmtDate(sel.created_at)}
                 </p>
               </div>
               <Badge tone={sel.status} />
@@ -107,15 +130,23 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
               ))}
             </ol>
 
+            <div className="mt-5 space-y-4">
+              <PhotoStep ticketId={sel.id} kind="before" url={pics.before} from={from} />
+              <PhotoStep ticketId={sel.id} kind="after" url={pics.after} from={from} />
+            </div>
+
             {nx && (
               <form action={setTicketStatus} className="mt-5 space-y-3">
                 <input type="hidden" name="id" value={sel.id} />
                 <input type="hidden" name="status" value={nx.to} />
+                <input type="hidden" name="from" value={from} />
                 <label className="label">Note for the customer (optional)</label>
                 <input className="input" name="note" placeholder="e.g. Screen replaced and tested. Ready any time before 7 PM." />
                 <div className="flex flex-wrap items-center gap-3">
-                  <SubmitButton className="btn-primary">{nx.label}</SubmitButton>
-                  <p className="muted flex-1">{nx.hint}</p>
+                  <SubmitButton className="btn-primary" disabled={blocked} pendingText="Updating…">
+                    {nx.label}
+                  </SubmitButton>
+                  <p className="muted flex-1">{blocked ? `Add the ${nx.needs} photo first. ${nx.hint}` : nx.hint}</p>
                 </div>
               </form>
             )}
@@ -132,12 +163,16 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
                 ))}
                 {!events?.length && <li className="muted">No history yet.</li>}
               </ul>
-              <form action={sendMessage} className="mt-3 flex gap-2">
-                <input type="hidden" name="id" value={sel.id} />
-                <input type="hidden" name="path" value="/technician" />
-                <input className="input" name="body" placeholder="Message the customer" />
-                <SubmitButton className="btn-tint shrink-0">Message customer</SubmitButton>
-              </form>
+              {sel.customer_id ? (
+                <form action={sendMessage} className="mt-3 flex gap-2">
+                  <input type="hidden" name="id" value={sel.id} />
+                  <input type="hidden" name="path" value="/technician" />
+                  <input className="input" name="body" placeholder="Message the customer" />
+                  <SubmitButton className="btn-tint shrink-0">Message customer</SubmitButton>
+                </form>
+              ) : (
+                <p className="muted mt-3">This is a walk-in customer. Call or text them on {sel.customer_phone || "the number you logged"}.</p>
+              )}
               <Link href="/technician/report" className="btn-danger mt-3">
                 Report a problem
               </Link>

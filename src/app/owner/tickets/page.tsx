@@ -19,13 +19,21 @@ export default async function Board() {
   const sb = await supabaseServer();
   const { data } = await sb
     .from("tickets")
-    .select("id,code,device,issue,status,customer_name,created_at,tech:profiles!tickets_technician_id_fkey(full_name)")
+    .select("id,code,device,issue,status,customer_name,source,created_at,tech:profiles!tickets_technician_id_fkey(full_name)")
     .eq("shop_id", p!.shop_id)
     .neq("status", "cancelled")
     .order("created_at", { ascending: false });
   return (
     <>
-      <PageHead title="Ticket board" sub="View every ticket in your shop. Technicians take the repairs and move them; you can open any ticket to see its history or reassign it." />
+      <PageHead
+        title="Ticket board"
+        sub="View every ticket in your shop. Technicians take the repairs and move them; you can open any ticket to see its history or reassign it."
+        action={
+          <Link href="/owner/tickets/new" className="btn-primary">
+            New walk-in ticket
+          </Link>
+        }
+      />
       <div className="grid gap-4 overflow-x-auto pb-2 lg:grid-cols-5">
         {COLS.map((c) => {
           const items = (data ?? []).filter((t: any) => t.status === c.key);
@@ -43,7 +51,7 @@ export default async function Board() {
                     <div className="font-semibold">{t.device}</div>
                     <div>{t.issue}</div>
                     <div className="muted text-xs">
-                      {t.customer_name || "Walk-in"} · {fmtDate(t.created_at)}
+                      {t.customer_name || "Walk-in"}{t.source === "walk_in" ? " (walk-in)" : ""} · {fmtDate(t.created_at)}
                     </div>
                     {t.tech?.full_name ? <div className="mt-1 text-xs font-semibold">{t.tech.full_name}</div> : <div className="mt-1 text-xs font-semibold text-red-700">No technician yet</div>}
                     <Link href={`/owner/tickets/${t.id}`} className="btn-outline mt-2 w-full !py-1.5">

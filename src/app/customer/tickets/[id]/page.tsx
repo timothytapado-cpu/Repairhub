@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { cancelTicket, sendMessage, submitReport } from "@/app/actions";
 import { Badge, Flash } from "@/components/ui";
 import { fmtDate } from "@/lib/util";
+import { loadTicketPhotos } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function Track({ params, searchParams }: { params: Promise<
   const { data: t } = await sb.from("tickets").select("*, shops(id,name,phone), tech:profiles!tickets_technician_id_fkey(full_name)").eq("id", id).single();
   if (!t) notFound();
   const { data: events } = await sb.from("ticket_events").select("*, profiles(full_name)").eq("ticket_id", id).order("created_at", { ascending: true });
+  const pics = (await loadTicketPhotos(sb, [id]))[id] ?? {};
   const at = ORDER[t.status] ?? -1;
   const closed = t.status === "cancelled";
 
@@ -88,6 +90,31 @@ export default async function Track({ params, searchParams }: { params: Promise<
           )}
         </div>
       </div>
+
+      {(pics.before || pics.after) && (
+        <div className="card !p-6">
+          <h2 className="h-card">Photos from the technician</h2>
+          <p className="muted mt-1">So you can see your phone before and after the repair. Tap a photo to enlarge it.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {([
+              ["Before: phone opened up", pics.before],
+              ["After: repair finished", pics.after],
+            ] as const).map(([label, url]) => (
+              <figure key={label}>
+                {url ? (
+                  <a href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={label} className="aspect-[4/3] w-full object-cover" />
+                  </a>
+                ) : (
+                  <div className="grid aspect-[4/3] place-items-center rounded-xl bg-[#d9def2] text-xs font-bold text-ink-soft">Not added yet</div>
+                )}
+                <figcaption className="mt-1.5 text-sm font-bold">{label}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <h2 className="mb-3 font-semibold">Updates & messages</h2>
