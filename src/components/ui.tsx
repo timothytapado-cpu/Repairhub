@@ -21,6 +21,24 @@ export function Badge({ tone, children }: { tone: string; children?: React.React
   return <span className={`badge ${TONE[tone] ?? "bg-[#e9ecf8] text-ink"}`}>{children ?? STATUS_LABEL[tone] ?? tone}</span>;
 }
 
+/** Shop logo (profile picture). Falls back to the shop's initials on a brand-blue square when no logo was uploaded. */
+export function ShopAvatar({ name, logo, className = "h-12 w-12 text-lg" }: { name: string; logo?: string | null; className?: string }) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+  return logo ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={logo} alt={`${name} logo`} className={`shrink-0 rounded-2xl border border-line bg-white object-cover ${className}`} />
+  ) : (
+    <span aria-hidden="true" className={`grid shrink-0 place-items-center rounded-2xl bg-brand font-extrabold text-white ${className}`}>
+      {initials}
+    </span>
+  );
+}
+
 /** The "Verified" badge customers see. Only shops whose permit an admin approved get it. */
 export function VerifiedBadge({ className = "" }: { className?: string }) {
   return (

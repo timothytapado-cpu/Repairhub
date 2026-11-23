@@ -13,6 +13,7 @@ export type FinderShop = {
   lng: number | null;
   plan: string;
   verified: boolean;
+  logo: string | null;
   phone: string;
   hours: string;
   rating: number | null;

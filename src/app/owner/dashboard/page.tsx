@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getProfile } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
-import { Badge, Flash, PageHead, Stat } from "@/components/ui";
+import { Badge, Flash, PageHead, ShopAvatar, Stat } from "@/components/ui";
 import { PLAN, PLAN_LIMITS, fmtDate } from "@/lib/util";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +63,7 @@ export default async function OwnerDashboard({ searchParams }: { searchParams: P
       <PageHead
         title={
           <span className="flex flex-wrap items-center gap-3">
+            {shop && <ShopAvatar name={shop.name} logo={shop.logo_url} className="h-12 w-12 text-lg" />}
             {shop?.name ?? "Your shop"}
             {shop && <Badge tone={shop.status}>{shop.status === "approved" ? "Verified by admin" : shop.status === "pending" ? (shop.permit_url ? "Verification in review" : "Not verified yet") : "Verification declined"}</Badge>}
           </span>

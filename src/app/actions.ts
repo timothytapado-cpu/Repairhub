@@ -430,6 +430,75 @@ export async function updateShop(f: FormData) {
   redirect("/owner/profile?msg=" + encodeURIComponent("Shop profile saved."));
 }
 
+/* ---------- shop logo and photos (public bucket "shop-images") ---------- */
+
+const SHOP_IMG = "shop-images";
+
+/** Validates and uploads one image into the shop's own folder. Returns its storage path and public URL. */
+async function putShopImage(sb: Awaited<ReturnType<typeof supabaseServer>>, shopId: string, file: FormDataEntryValue | null, prefix: string, failPath: string) {
+  if (!(file instanceof File) || file.size === 0) back(failPath, "error", "Choose an image first.");
+  const img = file as File;
+  if (!["image/jpeg", "image/png", "image/webp"].includes(img.type)) back(failPath, "error", "The image must be a JPG, PNG or WebP file.");
+  if (img.size > 5 * 1024 * 1024) back(failPath, "error", "The image must be 5 MB or smaller.");
+  const ext = img.type === "image/png" ? "png" : img.type === "image/webp" ? "webp" : "jpg";
+  const path = `${shopId}/${prefix}-${crypto.randomUUID()}.${ext}`;
+  const up = await sb.storage.from(SHOP_IMG).upload(path, img, { contentType: img.type });
+  if (up.error) back(failPath, "error", "Upload failed: " + up.error.message);
+  return { path, url: sb.storage.from(SHOP_IMG).getPublicUrl(path).data.publicUrl };
+}
+
+/** Storage path of a public URL in the shop-images bucket, or null. */
+const pathFromUrl = (url: string) => (url.includes(`/${SHOP_IMG}/`) ? decodeURIComponent(url.split(`/${SHOP_IMG}/`)[1].split("?")[0]) : null);
+
+export async function uploadShopLogo(f: FormData) {
+  const p = await getProfile();
+  const sb = await supabaseServer();
+  const { data: shop } = await sb.from("shops").select("logo_url").eq("id", p!.shop_id).single();
+  const { url } = await putShopImage(sb, p!.shop_id!, f.get("image"), "logo", "/owner/profile");
+  const { error } = await sb.from("shops").update({ logo_url: url }).eq("id", p!.shop_id);
+  if (error) back("/owner/profile", "error", error.message);
+  const old = shop?.logo_url ? pathFromUrl(shop.logo_url) : null;
+  if (old) await sb.storage.from(SHOP_IMG).remove([old]);
+  revalidatePath("/owner", "layout");
+  back("/owner/profile", "msg", "Logo updated. Customers now see it next to your shop name.");
+}
+
+export async function removeShopLogo() {
+  const p = await getProfile();
+  const sb = await supabaseServer();
+  const { data: shop } = await sb.from("shops").select("logo_url").eq("id", p!.shop_id).single();
+  await sb.from("shops").update({ logo_url: "" }).eq("id", p!.shop_id);
+  const old = shop?.logo_url ? pathFromUrl(shop.logo_url) : null;
+  if (old) await sb.storage.from(SHOP_IMG).remove([old]);
+  revalidatePath("/owner", "layout");
+  back("/owner/profile", "msg", "Logo removed.");
+}
+
+export async function addShopPhoto(f: FormData) {
+  const p = await getProfile();
+  const sb = await supabaseServer();
+  const { count } = await sb.from("shop_photos").select("id", { count: "exact", head: true }).eq("shop_id", p!.shop_id);
+  if ((count ?? 0) >= 6) back("/owner/profile", "error", "A shop can have up to 6 photos. Remove one to add another.");
+  const { path, url } = await putShopImage(sb, p!.shop_id!, f.get("image"), "photo", "/owner/profile");
+  const { error } = await sb.from("shop_photos").insert({ shop_id: p!.shop_id, path, url });
+  if (error) {
+    await sb.storage.from(SHOP_IMG).remove([path]);
+    back("/owner/profile", "error", error.message);
+  }
+  revalidatePath("/owner/profile");
+  back("/owner/profile", "msg", "Photo added to your shop page.");
+}
+
+export async function removeShopPhoto(f: FormData) {
+  const sb = await supabaseServer();
+  const id = s(f, "id");
+  const { data: row } = await sb.from("shop_photos").select("path").eq("id", id).single();
+  await sb.from("shop_photos").delete().eq("id", id);
+  if (row?.path) await sb.storage.from(SHOP_IMG).remove([row.path]);
+  revalidatePath("/owner/profile");
+  back("/owner/profile", "msg", "Photo removed.");
+}
+
 export async function addService(f: FormData) {
   const sb = await supabaseServer();
   const p = await getProfile();

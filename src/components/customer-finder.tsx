@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { OpenPill } from "./open-pill";
-import { VerifiedBadge } from "./ui";
+import { ShopAvatar, VerifiedBadge } from "./ui";
 import { useFinder, type FinderShop } from "./use-finder";
 import { fmtDistance, peso } from "@/lib/util";
 
@@ -65,7 +65,10 @@ export function CustomerFinder({ shops }: { shops: FinderShop[] }) {
         {f.list.map((s) => (
           <div key={s.id} className="card flex flex-col !p-5">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="text-lg font-extrabold leading-tight">{s.name}</h3>
+              <div className="flex min-w-0 items-center gap-3">
+                <ShopAvatar name={s.name} logo={s.logo} className="h-11 w-11 text-base" />
+                <h3 className="text-lg font-extrabold leading-tight">{s.name}</h3>
+              </div>
               {s.verified && <VerifiedBadge className="shrink-0" />}
             </div>
             <p className="muted mt-3">

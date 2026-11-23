@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ShopMap } from "./shop-map";
 import { OpenPill } from "./open-pill";
-import { LogoFull, VerifiedBadge } from "./ui";
+import { LogoFull, ShopAvatar, VerifiedBadge } from "./ui";
 import { useFinder, type Filter, type FinderShop } from "./use-finder";
 import { fmtDistance, peso } from "@/lib/util";
 
@@ -131,7 +131,10 @@ export function LandingFinder({ shops }: { shops: FinderShop[] }) {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="eyebrow text-brand-600">A closer look before you go</p>
-                <h3 className="mt-1 text-2xl font-extrabold">{sel.name}</h3>
+                <h3 className="mt-1 flex items-center gap-3 text-2xl font-extrabold">
+                  <ShopAvatar name={sel.name} logo={sel.logo} className="h-11 w-11 text-base" />
+                  {sel.name}
+                </h3>
                 <p className="muted">
                   {sel.verified ? "Verified shop" : "Shop"}{sel.rating != null ? ` · ${sel.rating.toFixed(1)} of 5 from ${sel.reviews} review${sel.reviews === 1 ? "" : "s"}` : ""}
                   {sel.distance != null ? ` · ${fmtDistance(sel.distance)} from you` : ""}

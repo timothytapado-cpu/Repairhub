@@ -5,11 +5,11 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getProfile, homeFor } from "@/lib/auth";
 import { requestRepair, submitReview, submitReport } from "@/app/actions";
 import { TopBar } from "@/components/shell";
-import { Flash, Stars, VerifiedBadge } from "@/components/ui";
+import { Flash, ShopAvatar, Stars, VerifiedBadge } from "@/components/ui";
 import { ShopRoute } from "@/components/shop-route";
 import { ShopItems } from "@/components/shop-items";
 import { OpenPill } from "@/components/open-pill";
-import { fmtDate, initials, peso } from "@/lib/util";
+import { fmtDate, peso } from "@/lib/util";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   const { data: shop } = await sb.from("shops").select("*, shop_services(*), products(*)").eq("id", id).single();
   if (!shop) notFound();
   const { data: reviews } = await sb.from("reviews").select("*, profiles(full_name)").eq("shop_id", id).order("created_at", { ascending: false });
+  const { data: gallery } = await sb.from("shop_photos").select("id,url").eq("shop_id", id).order("created_at");
   const avg = reviews?.length ? reviews.reduce((a, r) => a + r.rating, 0) / reviews.length : null;
   const sale = (shop.products ?? [])
     .filter((p: any) => p.for_sale)
@@ -51,7 +52,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
           </Link>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-brand text-2xl font-extrabold">{initials(shop.name)}</span>
+              <ShopAvatar name={shop.name} logo={shop.logo_url} className="h-16 w-16 text-2xl" />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-3xl font-extrabold tracking-tight">{shop.name}</h1>
@@ -84,10 +85,20 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
       <div className="mx-auto grid max-w-[1240px] gap-6 px-5 py-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Flash msg={sp.msg} error={sp.error} />
-          {shop.description && (
+          {(shop.description || (gallery?.length ?? 0) > 0) && (
             <section className="card !p-6">
               <h2 className="h-card">About</h2>
-              <p className="mt-2 text-[15px] leading-relaxed">{shop.description}</p>
+              {shop.description && <p className="mt-2 text-[15px] leading-relaxed">{shop.description}</p>}
+              {gallery && gallery.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {gallery.map((ph) => (
+                    <a key={ph.id} href={ph.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-line">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={ph.url} alt={`${shop.name} photo`} loading="lazy" className="aspect-[4/3] w-full object-cover transition hover:scale-105" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 

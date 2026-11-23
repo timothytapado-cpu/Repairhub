@@ -29,6 +29,11 @@ Plan rules follow the Figma "Plan usage" panel: Basic = 2 technicians, 50 invent
 - A shop is public as soon as it registers with a **name, a map location, a contact number and an email**. Nothing else is needed to be found by customers.
 - Documents only decide the **Verified badge**. An admin can give the badge (only if a permit was submitted) or decline it; a declined shop stays live without the badge and can resubmit.
 
+## Shop logo and photos
+- Owners add a **logo / profile picture** and up to **6 shop photos** (storefront, repair bench, accessories) under Shop profile. JPG, PNG or WebP, up to 5 MB.
+- The logo shows next to the shop name in search results, the shop page and the owner dashboard (initials are used until a logo is added). The photos appear in the About section of the shop page.
+- Images live in the public `shop-images` bucket; only the shop's owner can write to the shop's own folder.
+
 ## Walk-ins and repair photos
 - **Walk-in customers:** a technician (My jobs > "Walk-in customer?") or the owner (Ticket board > "New walk-in ticket") logs a customer's name, phone, device and problem. It becomes a normal ticket on the board, tagged Walk-in.
 - **Before photo:** required to start. The technician photographs the phone opened up; "Start repair" stays locked until it is uploaded.

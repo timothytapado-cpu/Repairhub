@@ -1,8 +1,9 @@
 import { SubmitButton } from "@/components/submit-button";
 import { getProfile } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
-import { addService, deleteService, updateShop } from "@/app/actions";
-import { Flash } from "@/components/ui";
+import { addService, addShopPhoto, deleteService, removeShopLogo, removeShopPhoto, updateShop, uploadShopLogo } from "@/app/actions";
+import { Flash, ShopAvatar } from "@/components/ui";
+import { ImageInput } from "@/components/image-input";
 import { LocationPicker } from "@/components/shop-map";
 import { peso } from "@/lib/util";
 
@@ -14,10 +15,67 @@ export default async function ShopProfile({ searchParams }: { searchParams: Prom
   const sb = await supabaseServer();
   const { data: shop } = await sb.from("shops").select("*, shop_services(*)").eq("id", p!.shop_id).single();
   if (!shop) return <p>No shop found.</p>;
+  const { data: photos } = await sb.from("shop_photos").select("id,url").eq("shop_id", p!.shop_id).order("created_at");
   return (
     <div className="max-w-3xl space-y-5">
-      <h1 className="text-2xl font-bold">Shop profile</h1>
+      <h1 className="h-page">Shop profile</h1>
       <Flash msg={sp.msg} error={sp.error} />
+
+      <div className="card space-y-6 !p-6">
+        <div>
+          <h2 className="h-card">Logo / profile picture</h2>
+          <p className="muted mt-1">Shown next to your shop name in search results and on your shop page. A square image works best.</p>
+          <div className="mt-4 flex flex-wrap items-start gap-5">
+            <ShopAvatar name={shop.name} logo={shop.logo_url} className="h-24 w-24 text-3xl" />
+            <div className="min-w-0 flex-1">
+              <form action={uploadShopLogo} className="space-y-3">
+                <ImageInput name="image" label={shop.logo_url ? "Replace logo" : "Upload your logo"} />
+                <SubmitButton className="btn-primary" pendingText="Uploading…">
+                  Save logo
+                </SubmitButton>
+              </form>
+              {shop.logo_url && (
+                <form action={removeShopLogo} className="mt-2">
+                  <SubmitButton className="text-sm font-bold text-[#a61e14]" pendingText="Removing…">
+                    Remove logo
+                  </SubmitButton>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-line pt-5">
+          <h2 className="h-card">Shop photos</h2>
+          <p className="muted mt-1">Show customers your storefront, repair bench or accessories. Up to 6 photos ({photos?.length ?? 0} used).</p>
+          {photos && photos.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {photos.map((ph) => (
+                <div key={ph.id} className="overflow-hidden rounded-xl border border-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={ph.url} alt="Shop photo" className="aspect-[4/3] w-full object-cover" />
+                  <form action={removeShopPhoto} className="p-2 text-center">
+                    <input type="hidden" name="id" value={ph.id} />
+                    <SubmitButton className="text-xs font-bold text-[#a61e14]" pendingText="Removing…">
+                      Remove
+                    </SubmitButton>
+                  </form>
+                </div>
+              ))}
+            </div>
+          )}
+          {(photos?.length ?? 0) < 6 ? (
+            <form action={addShopPhoto} className="mt-4 space-y-3">
+              <ImageInput name="image" label="Add a photo" />
+              <SubmitButton className="btn-outline" pendingText="Uploading…">
+                Add photo
+              </SubmitButton>
+            </form>
+          ) : (
+            <p className="muted mt-4">You have reached 6 photos. Remove one to add another.</p>
+          )}
+        </div>
+      </div>
       <form action={updateShop} className="card space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">

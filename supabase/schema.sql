@@ -259,6 +259,42 @@ create policy "owner updates product image" on storage.objects for update to aut
 create policy "owner deletes product image" on storage.objects for delete to authenticated
   using (bucket_id = 'product-images' and (storage.foldername(name))[1] = my_shop()::text and my_role() = 'owner');
 
+-- Shop logo (profile picture) and a gallery of shop photos
+alter table shops add column if not exists logo_url text not null default '';
+create table if not exists shop_photos (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references shops(id) on delete cascade,
+  path text not null,
+  url text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists shop_photos_shop on shop_photos(shop_id, created_at);
+alter table shop_photos enable row level security;
+create policy "shop photos public" on shop_photos for select using (true);
+create policy "owner adds shop photos" on shop_photos for insert with check (shop_id = my_shop() and my_role() = 'owner');
+create policy "owner removes shop photos" on shop_photos for delete using (shop_id = my_shop() and my_role() = 'owner');
+create or replace function limit_shop_photos() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from shop_photos where shop_id = new.shop_id) >= 6 then
+    raise exception 'A shop can have up to 6 photos. Remove one to add another.';
+  end if;
+  return new;
+end $$;
+create trigger shop_photos_limit before insert on shop_photos for each row execute function limit_shop_photos();
+revoke execute on function limit_shop_photos() from public, anon, authenticated;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('shop-images','shop-images', true, 5242880, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg','image/png','image/webp'];
+create policy "owner uploads shop images" on storage.objects for insert to authenticated
+  with check (bucket_id = 'shop-images' and (storage.foldername(name))[1] = my_shop()::text and my_role() = 'owner');
+create policy "owner updates shop images" on storage.objects for update to authenticated
+  using (bucket_id = 'shop-images' and (storage.foldername(name))[1] = my_shop()::text and my_role() = 'owner');
+create policy "owner deletes shop images" on storage.objects for delete to authenticated
+  using (bucket_id = 'shop-images' and (storage.foldername(name))[1] = my_shop()::text and my_role() = 'owner');
+-- Removing a file in Supabase Storage also needs read access to it, otherwise the delete silently finds nothing.
+create policy "owner reads own shop images" on storage.objects for select to authenticated
+  using (bucket_id = 'shop-images' and (storage.foldername(name))[1] = my_shop()::text and my_role() = 'owner');
+
 -- Walk-in customers: tickets logged by shop staff for people without an account
 alter table tickets add column if not exists customer_phone text not null default '';
 alter table tickets add column if not exists source text not null default 'online';   -- 'online' | 'walk_in'
