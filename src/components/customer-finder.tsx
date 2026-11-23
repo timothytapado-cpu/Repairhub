@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { OpenPill } from "./open-pill";
+import { VerifiedBadge } from "./ui";
 import { useFinder, type FinderShop } from "./use-finder";
 import { fmtDistance, peso } from "@/lib/util";
 
@@ -54,6 +55,9 @@ export function CustomerFinder({ shops }: { shops: FinderShop[] }) {
         <button onClick={() => f.setFilter("open")} className={f.filter === "open" ? "chip-on" : "chip"}>
           Open now
         </button>
+        <button onClick={() => f.setFilter("verified")} className={f.filter === "verified" ? "chip-on" : "chip"}>
+          Verified only
+        </button>
       </div>
 
       <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -62,7 +66,7 @@ export function CustomerFinder({ shops }: { shops: FinderShop[] }) {
           <div key={s.id} className="card flex flex-col !p-5">
             <div className="flex items-start justify-between gap-2">
               <h3 className="text-lg font-extrabold leading-tight">{s.name}</h3>
-              <span className="badge shrink-0 bg-brand-50 text-brand-600">Verified</span>
+              {s.verified && <VerifiedBadge className="shrink-0" />}
             </div>
             <p className="muted mt-3">
               {s.rating != null ? `${s.rating.toFixed(1)} rating (${s.reviews} review${s.reviews === 1 ? "" : "s"})` : "No reviews yet"}

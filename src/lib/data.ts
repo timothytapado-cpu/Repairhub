@@ -5,8 +5,7 @@ export async function loadFinderShops(): Promise<FinderShop[]> {
   const sb = await supabaseServer();
   const { data: shops } = await sb
     .from("shops")
-    .select("id,name,address,barangay,lat,lng,plan,phone,hours,shop_services(name,price_from),reviews(rating,comment,created_at)")
-    .eq("status", "approved");
+    .select("id,name,address,barangay,lat,lng,plan,phone,hours,status,shop_services(name,price_from),reviews(rating,comment,created_at)"); // every shop is public; only the Verified badge depends on documents
   return (shops ?? []).map((s: any) => {
     const reviews: any[] = [...(s.reviews ?? [])].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     const r = reviews.map((x) => x.rating as number);
@@ -20,6 +19,7 @@ export async function loadFinderShops(): Promise<FinderShop[]> {
       lat: s.lat,
       lng: s.lng,
       plan: s.plan,
+      verified: s.status === "approved",
       phone: s.phone ?? "",
       hours: s.hours ?? "",
       rating: r.length ? r.reduce((a, b) => a + b, 0) / r.length : null,

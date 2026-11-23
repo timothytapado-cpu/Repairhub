@@ -1,15 +1,16 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { signUpShop } from "@/app/actions";
 import { Flash, Logo } from "@/components/ui";
 import { LocationPicker } from "@/components/shop-map";
 import { PLAN } from "@/lib/util";
 
-const STEPS = ["Owner account", "Shop info", "Plan", "Documents", "Admin approval"];
+const STEPS = ["Owner account", "Shop info", "Plan", "Documents", "Verified badge"];
 const STATUS = [
-  ["Submitted", "Your registration is saved. You cannot take bookings yet.", "bg-[#e9ecf8] text-ink", "bg-ink-soft"],
-  ["Under admin review", "An admin checks your shop info and documents.", "bg-warn-bg text-warn-text", "bg-[#7a5200]"],
-  ["Approved", "Your shop goes live, shows as Verified, and billing starts.", "bg-ok-bg text-ok-text", "bg-[#0b7a45]"],
-  ["Rejected", "You see the reason from the admin, fix it, and resubmit. Nothing is lost.", "bg-bad-bg text-bad-text", "bg-[#b4231a]"],
+  ["Live right away", "Your shop is public as soon as you register. Customers can find it and send requests.", "bg-[#e9ecf8] text-ink", "bg-ink-soft"],
+  ["Submit your permit", "Upload your business permit now or later from your dashboard. This is what earns the Verified badge.", "bg-warn-bg text-warn-text", "bg-[#7a5200]"],
+  ["Verified", "After an admin approves your permit, the Verified badge appears on your shop.", "bg-ok-bg text-ok-text", "bg-[#0b7a45]"],
+  ["Declined", "If the permit is not accepted you see the reason and can resubmit a corrected one. Your shop stays live the whole time, just without the badge.", "bg-bad-bg text-bad-text", "bg-[#b4231a]"],
 ];
 
 export default async function RegisterShop({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -26,7 +27,7 @@ export default async function RegisterShop({ searchParams }: { searchParams: Pro
       </header>
       <div className="mx-auto max-w-[1160px] px-5 py-10">
         <h1 className="h-page text-4xl">Register your shop</h1>
-        <p className="muted mt-1">Your shop goes live only after a system admin approves it.</p>
+        <p className="muted mt-1">Your shop goes live right away once it has a name, a location and contact details (your email and a contact number). Documents can come later; they only earn the Verified badge.</p>
 
         <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {STEPS.map((s, i) => (
@@ -40,7 +41,7 @@ export default async function RegisterShop({ searchParams }: { searchParams: Pro
         <div className="mt-6">
           <Flash error={sp.error} />
         </div>
-        <form action={signUpShop} encType="multipart/form-data" className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <form action={signUpShop} className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-6">
             <section className="card !p-6">
               <h2 className="h-card">Owner account</h2>
@@ -81,7 +82,7 @@ export default async function RegisterShop({ searchParams }: { searchParams: Pro
                 </div>
                 <div>
                   <label className="label">Shop contact number</label>
-                  <input className="input" name="shop_phone" inputMode="tel" />
+                  <input className="input" name="shop_phone" inputMode="tel" required placeholder="09XX XXX XXXX" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="label">About the shop</label>
@@ -116,8 +117,8 @@ export default async function RegisterShop({ searchParams }: { searchParams: Pro
             </section>
 
             <section className="card !p-6">
-              <h2 className="h-card">Verification document</h2>
-              <p className="muted mt-1">The admin checks this before approving your shop. JPG, PNG or PDF, up to 5 MB.</p>
+              <h2 className="h-card">Verification document (optional now)</h2>
+              <p className="muted mt-1">Needed for the Verified badge. You can skip it and upload it later from your dashboard. JPG, PNG or PDF, up to 5 MB.</p>
               <div className="mt-4 rounded-xl border border-line p-4">
                 <p className="mb-2 text-sm font-bold">Business permit or DTI registration</p>
                 <input className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:font-bold file:text-brand-600" type="file" name="permit" accept="image/*,application/pdf" />
@@ -128,7 +129,7 @@ export default async function RegisterShop({ searchParams }: { searchParams: Pro
               <Link href="/login" className="btn-outline">
                 Cancel registration
               </Link>
-              <button className="btn-primary">Submit for approval</button>
+              <SubmitButton className="btn-primary">Register my shop</SubmitButton>
             </div>
           </div>
 

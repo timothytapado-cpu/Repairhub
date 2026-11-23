@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -82,7 +83,7 @@ export default async function Track({ params, searchParams }: { params: Promise<
           {t.status === "new" && (
             <form action={cancelTicket}>
               <input type="hidden" name="id" value={id} />
-              <button className="btn-danger">Cancel request</button>
+              <SubmitButton className="btn-danger">Cancel request</SubmitButton>
             </form>
           )}
         </div>
@@ -105,7 +106,7 @@ export default async function Track({ params, searchParams }: { params: Promise<
             <input type="hidden" name="id" value={id} />
             <input type="hidden" name="path" value={`/customer/tickets/${id}`} />
             <input className="input" name="body" placeholder="Message the shop" />
-            <button className="btn-outline">Send</button>
+            <SubmitButton className="btn-outline">Send</SubmitButton>
           </form>
         )}
       </div>
@@ -114,7 +115,7 @@ export default async function Track({ params, searchParams }: { params: Promise<
         <input type="hidden" name="shop_id" value={t.shops?.id} />
         <input type="hidden" name="from" value={`/customer/tickets/${id}`} />
         <input className="input" name="body" placeholder="Report a problem with this repair" required />
-        <button className="btn-danger shrink-0">Report</button>
+        <SubmitButton className="btn-danger shrink-0">Report</SubmitButton>
       </form>
     </div>
   );

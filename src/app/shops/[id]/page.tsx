@@ -1,10 +1,11 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getProfile, homeFor } from "@/lib/auth";
 import { requestRepair, submitReview, submitReport } from "@/app/actions";
 import { TopBar } from "@/components/shell";
-import { Flash, Stars } from "@/components/ui";
+import { Flash, Stars, VerifiedBadge } from "@/components/ui";
 import { ShopRoute } from "@/components/shop-route";
 import { ShopItems } from "@/components/shop-items";
 import { OpenPill } from "@/components/open-pill";
@@ -18,7 +19,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   const sb = await supabaseServer();
   const me = await getProfile();
   const { data: shop } = await sb.from("shops").select("*, shop_services(*), products(*)").eq("id", id).single();
-  if (!shop || (shop.status !== "approved" && me?.shop_id !== shop.id && me?.role !== "admin")) notFound();
+  if (!shop) notFound();
   const { data: reviews } = await sb.from("reviews").select("*, profiles(full_name)").eq("shop_id", id).order("created_at", { ascending: false });
   const avg = reviews?.length ? reviews.reduce((a, r) => a + r.rating, 0) / reviews.length : null;
   const sale = (shop.products ?? [])
@@ -54,7 +55,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-3xl font-extrabold tracking-tight">{shop.name}</h1>
-                  {shop.status === "approved" && <span className="badge bg-brand-50 text-brand-600">Verified</span>}
+                  {shop.status === "approved" && <VerifiedBadge />}
                   {shop.plan === "pro" && <span className="badge bg-brand text-white">Pro</span>}
                   <OpenPill hours={shop.hours} short />
                 </div>
@@ -63,6 +64,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
                   {shop.address}
                   {shop.barangay ? `, ${shop.barangay}` : ""}
                 </p>
+                <p className="mt-1 text-sm font-semibold text-on-dark">{shop.status === "approved" ? "✓ Business permit checked by the platform admin" : "Not verified yet · this shop has not completed admin verification"}</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -152,7 +154,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
                   ))}
                 </select>
                 <input name="comment" className="input min-w-0 flex-1" placeholder="Share your experience" />
-                <button className="btn-tint">Write a review</button>
+                <SubmitButton className="btn-tint">Write a review</SubmitButton>
               </form>
             )}
           </section>
@@ -175,7 +177,12 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
           </section>
           <section className="card !p-6">
             <h2 className="h-card">Contact</h2>
-            {shop.phone ? <p className="mt-2 text-sm">{shop.phone}</p> : <p className="muted mt-2">No phone number listed.</p>}
+            {shop.phone ? <p className="mt-2 text-sm font-semibold">{shop.phone}</p> : <p className="muted mt-2">No phone number listed.</p>}
+            {shop.email && (
+              <a href={`mailto:${shop.email}`} className="mt-1 block break-all text-sm font-semibold text-brand-600">
+                {shop.email}
+              </a>
+            )}
             {shop.phone && (
               <a href={`tel:${shop.phone}`} className="btn-outline mt-3 w-full">
                 Call the shop
@@ -203,7 +210,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
                   <label className="label">Details</label>
                   <textarea className="input" name="details" rows={3} placeholder="Describe the problem" />
                 </div>
-                <button className="btn-primary w-full">Send request</button>
+                <SubmitButton className="btn-primary w-full">Send request</SubmitButton>
               </form>
             ) : me ? (
               <p className="muted mt-2">Only customer accounts can send repair requests.</p>
@@ -225,7 +232,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
               <input type="hidden" name="from" value={`/shops/${id}`} />
               <h2 className="h-card">Report a problem</h2>
               <textarea name="body" className="input" rows={2} placeholder="What went wrong?" required />
-              <button className="btn-danger w-full">Report this shop</button>
+              <SubmitButton className="btn-danger w-full">Report this shop</SubmitButton>
             </form>
           )}
         </aside>

@@ -7,9 +7,9 @@ Built from the Figma design with Next.js 15, Supabase (Postgres, Auth, Storage) 
 | Role | Entry | Can do |
 |---|---|---|
 | Customer | `/register`, `/login` | Find shops by location, view profile, request repair, track status, message shop, review, report |
-| Shop owner | `/register/shop`, `/login` | Register shop + Basic/Pro plan (simulated payment), ticket board, inventory (Pro), employees, profile, subscription |
+| Shop owner | `/register/shop`, `/login` | Register shop (live right away) + Basic/Pro plan (simulated payment), submit permit for the Verified badge, ticket board, inventory, employees, profile, subscription |
 | Technician | `/login` (account made by owner) | Take new requests, update status, message customer |
-| Admin | `/admin-login` (private, no sign-up) | Approve/reject shops, view permits, resolve reports, suspend users |
+| Admin | `/admin-login` (private, no sign-up) | Give the Verified badge (only after the shop submitted its permit) or reject and hide a shop, view permits, resolve reports, suspend users |
 
 ## Setup
 1. Create a free project at https://supabase.com.
@@ -24,6 +24,10 @@ Built from the Figma design with Next.js 15, Supabase (Postgres, Auth, Storage) 
 ## Design
 The UI follows the Figma file (design tokens, Manrope font, layouts). Colours live in `tailwind.config.js` and the shared button/card/chip classes in `src/app/globals.css`.
 Plan rules follow the Figma "Plan usage" panel: Basic = 2 technicians, 50 inventory items, 100 tickets a month; Pro = unlimited.
+
+## Shop listing rules
+- A shop is public as soon as it registers with a **name, a map location, a contact number and an email**. Nothing else is needed to be found by customers.
+- Documents only decide the **Verified badge**. An admin can give the badge (only if a permit was submitted) or decline it; a declined shop stays live without the badge and can resubmit.
 
 ## Demo flow
 1. Register a shop (pin the location on the map) -> sign in as admin -> approve it.

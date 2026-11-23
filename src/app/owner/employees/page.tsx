@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { getProfile } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { addTechnician, toggleEmployee } from "@/app/actions";
@@ -40,7 +41,7 @@ export default async function Employees({ searchParams }: { searchParams: Promis
                     <form action={toggleEmployee}>
                       <input type="hidden" name="id" value={m.id} />
                       <input type="hidden" name="active" value={String(!m.active)} />
-                      <button className="text-xs font-semibold text-brand">{m.active ? "Deactivate" : "Reactivate"}</button>
+                      <SubmitButton className="text-xs font-semibold text-brand">{m.active ? "Deactivate" : "Reactivate"}</SubmitButton>
                     </form>
                   </td>
                 </tr>
@@ -61,7 +62,7 @@ export default async function Employees({ searchParams }: { searchParams: Promis
           <input className="input" name="phone" placeholder="Mobile number" />
           <input className="input" name="email" type="email" placeholder="Login email" required />
           <input className="input" name="password" type="text" minLength={8} placeholder="Temporary password" required />
-          <button className="btn-primary w-full">Create account</button>
+          <SubmitButton className="btn-primary w-full">Create account</SubmitButton>
           <p className="muted">Share the email and temporary password with your technician. Basic plan: up to 2 staff.</p>
         </form>
       </div>

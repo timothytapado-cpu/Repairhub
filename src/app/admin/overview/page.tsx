@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { resolveReport, setUserActive } from "@/app/actions";
@@ -28,13 +29,13 @@ export default async function Overview() {
         action={
           pending.length > 0 && (
             <Link href="/admin/approvals" className="btn-primary">
-              Review {pending.length} pending shop{pending.length === 1 ? "" : "s"}
+              Review {pending.length} unverified shop{pending.length === 1 ? "" : "s"}
             </Link>
           )
         }
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Pending shop approvals" value={pending.length} hint={pending.length ? `Oldest waiting ${oldest} day${oldest === 1 ? "" : "s"}` : "Nothing waiting"} />
+        <Stat label="Not verified yet" value={pending.length} hint={pending.length ? `Live shops without the badge · oldest ${oldest} day${oldest === 1 ? "" : "s"}` : "All shops verified"} />
         <Stat label="Open problem reports" value={reports?.length ?? 0} hint="Not yet resolved" />
         <Stat label="Verified shops" value={verified.length} hint={`${pro} on Pro, ${verified.length - pro} on Basic`} />
         <Stat label="Registered users" value={profiles?.length ?? 0} hint={`${tickets ?? 0} repair tickets so far`} />
@@ -68,7 +69,7 @@ export default async function Overview() {
                   <td className="py-3">
                     <form action={resolveReport}>
                       <input type="hidden" name="id" value={r.id} />
-                      <button className="btn-outline !px-4 !py-2">Resolve</button>
+                      <SubmitButton className="btn-outline !px-4 !py-2">Resolve</SubmitButton>
                     </form>
                   </td>
                 </tr>
@@ -102,7 +103,7 @@ export default async function Overview() {
                 <input type="hidden" name="id" value={u.id} />
                 <input type="hidden" name="active" value={String(!u.active)} />
                 <Badge tone={u.active ? "ok" : "bad"}>{u.active ? "Active" : "Deactivated"}</Badge>
-                <button className="btn-outline !px-4 !py-2">{u.active ? "Deactivate" : "Reactivate"}</button>
+                <SubmitButton className="btn-outline !px-4 !py-2">{u.active ? "Deactivate" : "Reactivate"}</SubmitButton>
               </form>
             </li>
           ))}

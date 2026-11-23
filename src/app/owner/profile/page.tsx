@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { getProfile } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { addService, deleteService, updateShop } from "@/app/actions";
@@ -33,7 +34,11 @@ export default async function ShopProfile({ searchParams }: { searchParams: Prom
           </div>
           <div>
             <label className="label">Contact number</label>
-            <input className="input" name="phone" defaultValue={shop.phone} />
+            <input className="input" name="phone" defaultValue={shop.phone} required inputMode="tel" />
+          </div>
+          <div>
+            <label className="label">Contact email</label>
+            <input className="input" name="email" type="email" defaultValue={shop.email} placeholder="shop@example.com" />
           </div>
           <div>
             <label className="label">Opening hours</label>
@@ -48,7 +53,7 @@ export default async function ShopProfile({ searchParams }: { searchParams: Prom
           <label className="label">Map pin</label>
           <LocationPicker lat={shop.lat} lng={shop.lng} />
         </div>
-        <button className="btn-primary">Save changes</button>
+        <SubmitButton className="btn-primary">Save changes</SubmitButton>
       </form>
 
       <div className="card">
@@ -61,7 +66,7 @@ export default async function ShopProfile({ searchParams }: { searchParams: Prom
               </span>
               <form action={deleteService}>
                 <input type="hidden" name="id" value={s.id} />
-                <button className="text-xs font-semibold text-red-700">Remove</button>
+                <SubmitButton className="text-xs font-semibold text-red-700">Remove</SubmitButton>
               </form>
             </li>
           ))}
@@ -69,7 +74,7 @@ export default async function ShopProfile({ searchParams }: { searchParams: Prom
         <form action={addService} className="mt-3 flex gap-2">
           <input className="input" name="name" placeholder="Service name" required />
           <input className="input !w-32" name="price_from" type="number" min={0} placeholder="₱ from" />
-          <button className="btn-outline shrink-0">Add</button>
+          <SubmitButton className="btn-outline shrink-0">Add</SubmitButton>
         </form>
       </div>
     </div>

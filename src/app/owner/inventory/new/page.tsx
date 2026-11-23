@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { addProduct } from "@/app/actions";
 import { Flash } from "@/components/ui";
@@ -11,7 +12,7 @@ export default async function AddProduct({ searchParams }: { searchParams: Promi
       <p className="muted">Inventory</p>
       <h1 className="mb-4 text-2xl font-bold">Add product</h1>
       <Flash error={sp.error} />
-      <form action={addProduct} encType="multipart/form-data" className="card space-y-4">
+      <form action={addProduct} className="card space-y-4">
         <ImageInput />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -54,7 +55,7 @@ export default async function AddProduct({ searchParams }: { searchParams: Promi
           <Link href="/owner/inventory" className="btn-outline">
             Cancel
           </Link>
-          <button className="btn-primary">Save product</button>
+          <SubmitButton className="btn-primary">Save product</SubmitButton>
         </div>
       </form>
     </div>

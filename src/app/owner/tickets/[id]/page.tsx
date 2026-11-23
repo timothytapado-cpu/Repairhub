@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProfile } from "@/lib/auth";
@@ -50,7 +51,7 @@ export default async function OwnerTicket({ params }: { params: Promise<{ id: st
                 </option>
               ))}
             </select>
-            <button className="btn-outline w-full">Save assignment</button>
+            <SubmitButton className="btn-outline w-full">Save assignment</SubmitButton>
           </form>
           <form action={setTicketStatus} className="space-y-2">
             <input type="hidden" name="id" value={id} />
@@ -63,7 +64,7 @@ export default async function OwnerTicket({ params }: { params: Promise<{ id: st
               ))}
             </select>
             <input className="input" name="note" placeholder="Optional note for the customer" />
-            <button className="btn-primary w-full">Update status</button>
+            <SubmitButton className="btn-primary w-full">Update status</SubmitButton>
           </form>
         </div>
       </div>
@@ -83,7 +84,7 @@ export default async function OwnerTicket({ params }: { params: Promise<{ id: st
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="path" value={`/owner/tickets/${id}`} />
           <input className="input" name="body" placeholder="Message the customer" />
-          <button className="btn-outline">Send</button>
+          <SubmitButton className="btn-outline">Send</SubmitButton>
         </form>
       </div>
     </div>

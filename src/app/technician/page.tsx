@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { getProfile } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -54,7 +55,7 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
               </div>
               <form action={takeRequest}>
                 <input type="hidden" name="id" value={t.id} />
-                <button className="btn-primary">Take this repair</button>
+                <SubmitButton className="btn-primary">Take this repair</SubmitButton>
               </form>
             </li>
           ))}
@@ -113,7 +114,7 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
                 <label className="label">Note for the customer (optional)</label>
                 <input className="input" name="note" placeholder="e.g. Screen replaced and tested. Ready any time before 7 PM." />
                 <div className="flex flex-wrap items-center gap-3">
-                  <button className="btn-primary">{nx.label}</button>
+                  <SubmitButton className="btn-primary">{nx.label}</SubmitButton>
                   <p className="muted flex-1">{nx.hint}</p>
                 </div>
               </form>
@@ -135,7 +136,7 @@ export default async function MyJobs({ searchParams }: { searchParams: Promise<{
                 <input type="hidden" name="id" value={sel.id} />
                 <input type="hidden" name="path" value="/technician" />
                 <input className="input" name="body" placeholder="Message the customer" />
-                <button className="btn-tint shrink-0">Message customer</button>
+                <SubmitButton className="btn-tint shrink-0">Message customer</SubmitButton>
               </form>
               <Link href="/technician/report" className="btn-danger mt-3">
                 Report a problem

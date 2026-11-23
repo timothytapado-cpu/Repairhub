@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { signIn } from "@/app/actions";
 import { Flash, LogoFull } from "@/components/ui";
 
@@ -22,7 +23,7 @@ export default async function AdminLogin({ searchParams }: { searchParams: Promi
             <label className="label">Password</label>
             <input className="input" name="password" type="password" required />
           </div>
-          <button className="btn-primary w-full">Sign in to console</button>
+          <SubmitButton className="btn-primary w-full">Sign in to console</SubmitButton>
         </form>
       </div>
     </div>

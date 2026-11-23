@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { signUpCustomer } from "@/app/actions";
 import { Flash, Logo } from "@/components/ui";
@@ -36,7 +37,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
             <label className="label">Password</label>
             <input className="input" name="password" type="password" minLength={8} required />
           </div>
-          <button className="btn-primary w-full !py-3">Create account</button>
+          <SubmitButton className="btn-primary w-full !py-3">Create account</SubmitButton>
         </form>
       </div>
     </div>

@@ -53,6 +53,17 @@ export async function signUpCustomer(f: FormData) {
 export async function signUpShop(f: FormData) {
   const sb = await supabaseServer();
   const plan = s(f, "plan") === "pro" ? "pro" : "basic";
+  // To go live a shop only needs its name, location and contact details. Documents can come later (they only earn the Verified badge).
+  const missing = !s(f, "shop_name")
+    ? "Enter your shop name."
+    : !s(f, "address")
+      ? "Enter your shop's street address."
+      : !f.get("lat") || !f.get("lng")
+        ? "Search your address or click the map to drop your shop pin, so customers can find you."
+        : s(f, "shop_phone").replace(/\D/g, "").length < 7
+          ? "Enter a contact number customers can call or text."
+          : "";
+  if (missing) back("/register/shop", "error", missing);
   const { data: auth, error } = await sb.auth.signUp({
     email: s(f, "email"),
     password: s(f, "password"),
@@ -74,6 +85,7 @@ export async function signUpShop(f: FormData) {
       lat: f.get("lat") ? n(f, "lat") : null,
       lng: f.get("lng") ? n(f, "lng") : null,
       phone: s(f, "shop_phone"),
+      email: s(f, "email"),
       plan,
       plan_paid_until: paidUntil,
     })
@@ -97,7 +109,30 @@ export async function signUpShop(f: FormData) {
     const up = await sb.storage.from("permits").upload(path, file);
     if (!up.error) await sb.from("shops").update({ permit_url: path }).eq("id", shop!.id);
   }
-  redirect("/owner/dashboard?msg=" + encodeURIComponent("Shop submitted. An administrator will review it before it goes public."));
+  const sent = file instanceof File && file.size > 0;
+  redirect(
+    "/owner/dashboard?msg=" +
+      encodeURIComponent(sent ? "Your shop is live. Your permit was sent; an admin will review it and give you the Verified badge." : "Your shop is live. Submit your business permit to earn the Verified badge."),
+  );
+}
+
+/** Owner submits (or replaces) the business permit. This is the requirement for the Verified badge. */
+export async function submitPermit(f: FormData) {
+  const sb = await supabaseServer();
+  const p = await getProfile();
+  const file = f.get("permit");
+  if (!(file instanceof File) || file.size === 0) back("/owner/dashboard", "error", "Choose a file first (JPG, PNG or PDF).");
+  const upload = file as File;
+  if (upload.size > 5 * 1024 * 1024) back("/owner/dashboard", "error", "The file must be 5 MB or smaller.");
+  if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(upload.type)) back("/owner/dashboard", "error", "Use a JPG, PNG, WebP or PDF file.");
+  const path = `${p!.id}/${Date.now()}-${upload.name.replace(/[^\w.]/g, "_")}`;
+  const up = await sb.storage.from("permits").upload(path, upload, { contentType: upload.type });
+  if (up.error) back("/owner/dashboard", "error", "Upload failed: " + up.error.message);
+  // a rejected shop goes back to pending when it resubmits; the database only allows that one change
+  const { data: shop } = await sb.from("shops").select("status").eq("id", p!.shop_id).single();
+  await sb.from("shops").update({ permit_url: path, ...(shop?.status === "rejected" ? { status: "pending" } : {}) }).eq("id", p!.shop_id);
+  revalidatePath("/owner", "layout");
+  redirect("/owner/dashboard?msg=" + encodeURIComponent("Permit received. An admin will review it and give you the Verified badge."));
 }
 
 /* ---------- customer ---------- */
@@ -299,6 +334,7 @@ export async function toggleEmployee(f: FormData) {
 export async function updateShop(f: FormData) {
   const sb = await supabaseServer();
   const p = await getProfile();
+  if (s(f, "phone").replace(/\D/g, "").length < 7) back("/owner/profile", "error", "Keep a contact number on your shop so customers can reach you.");
   const { error } = await sb
     .from("shops")
     .update({
@@ -307,6 +343,7 @@ export async function updateShop(f: FormData) {
       address: s(f, "address"),
       barangay: s(f, "barangay"),
       phone: s(f, "phone"),
+      email: s(f, "email"),
       hours: s(f, "hours"),
       lat: f.get("lat") ? n(f, "lat") : null,
       lng: f.get("lng") ? n(f, "lng") : null,
@@ -339,12 +376,29 @@ export async function changePlan(f: FormData) {
 }
 
 /* ---------- admin ---------- */
-export async function reviewShop(f: FormData) {
+/** Gives the Verified badge. Only possible once the shop has submitted its permit. */
+export async function approveShop(f: FormData) {
   const sb = await supabaseServer();
-  const approve = s(f, "decision") === "approve";
-  await sb.from("shops").update({ status: approve ? "approved" : "rejected", rejection_note: approve ? "" : s(f, "note") }).eq("id", s(f, "id"));
+  const id = s(f, "id");
+  const { data: shop } = await sb.from("shops").select("permit_url").eq("id", id).single();
+  if (!shop?.permit_url) back("/admin/approvals", "error", "This shop has not submitted its permit yet, so it cannot be verified.");
+  await sb.from("shops").update({ status: "approved", rejection_note: "" }).eq("id", id);
   revalidatePath("/admin/approvals");
   revalidatePath("/admin/overview");
+  revalidatePath("/", "layout");
+  redirect("/admin/approvals?tab=approved&msg=" + encodeURIComponent("Verified badge given."));
+}
+
+/** Declines the verification. The shop stays live (just without the badge) and the owner can resubmit. A message to the owner is required. */
+export async function rejectShop(f: FormData) {
+  const sb = await supabaseServer();
+  const id = s(f, "id");
+  if (!s(f, "note")) back(`/admin/approvals?s=${id}`, "error", "Write a short message to the owner so they know what to fix.");
+  await sb.from("shops").update({ status: "rejected", rejection_note: s(f, "note") }).eq("id", id);
+  revalidatePath("/admin/approvals");
+  revalidatePath("/admin/overview");
+  revalidatePath("/", "layout");
+  redirect("/admin/approvals?tab=rejected&msg=" + encodeURIComponent("Verification declined. The shop stays live without the badge, and the owner can see your message and resubmit."));
 }
 
 export async function resolveReport(f: FormData) {

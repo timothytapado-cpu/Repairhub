@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { submitReport } from "@/app/actions";
 import { Flash } from "@/components/ui";
 
@@ -10,7 +11,7 @@ export default async function Report({ searchParams }: { searchParams: Promise<{
       <form action={submitReport} className="card space-y-3">
         <input type="hidden" name="from" value="/owner/report" />
         <textarea className="input" name="body" rows={5} placeholder="Describe the issue with the platform or a customer" required />
-        <button className="btn-primary">Send to administrators</button>
+        <SubmitButton className="btn-primary">Send to administrators</SubmitButton>
       </form>
     </div>
   );

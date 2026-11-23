@@ -90,7 +90,7 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
                           <div className="muted text-xs">
                             {i.category} · {i.for_sale ? "On shop page" : "Repair part only"}
                           </div>
-                          <form action={updateProductImage} encType="multipart/form-data">
+                          <form action={updateProductImage}>
                             <input type="hidden" name="id" value={i.id} />
                             <label className="cursor-pointer text-xs font-bold text-brand-600">
                               {i.image_url ? "Change photo" : "Add photo"}

@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       workspace="System admin console"
       nav={[
         { href: "/admin/overview", label: "Overview", badge: reports ? `${reports} reports` : null },
-        { href: "/admin/approvals", label: "Shop approvals", badge: pending || null },
+        { href: "/admin/approvals", label: "Shop verification", badge: pending || null },
       ]}
     >
       {children}

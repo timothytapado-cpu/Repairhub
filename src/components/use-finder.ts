@@ -12,6 +12,7 @@ export type FinderShop = {
   lat: number | null;
   lng: number | null;
   plan: string;
+  verified: boolean;
   phone: string;
   hours: string;
   rating: number | null;
@@ -21,7 +22,7 @@ export type FinderShop = {
   latestReview: { comment: string; rating: number } | null;
 };
 
-/** "all", "open" (open right now), or a keyword matched against the shop's service names. */
+/** "all", "verified" (admin-verified shops only), "open" (open right now), or a keyword matched against the shop's service names. */
 export type Filter = string;
 
 /** Shared search state for the landing page and the customer's "find a shop" page. */
@@ -66,11 +67,12 @@ export function useFinder(shops: FinderShop[]) {
       .filter((s) => {
         const names = s.services.map((x) => x.name.toLowerCase()).join(" ");
         if (filter === "all") return true;
+        if (filter === "verified") return s.verified;
         if (filter === "open") return !!openStatus(s.hours)?.open;
         return names.includes(filter);
       })
       .map((s) => ({ ...s, distance: me && s.lat != null && s.lng != null ? haversine(me.lat, me.lng, s.lat, s.lng) : (null as number | null) }));
-    rows.sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9) || (b.plan === "pro" ? 1 : 0) - (a.plan === "pro" ? 1 : 0) || a.name.localeCompare(b.name));
+    rows.sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9) || +b.verified - +a.verified || (b.plan === "pro" ? 1 : 0) - (a.plan === "pro" ? 1 : 0) || a.name.localeCompare(b.name));
     return rows;
   }, [shops, me, filter]);
 

@@ -23,7 +23,7 @@ function Usage({ label, used, limit }: { label: string; used: number; limit: num
   );
 }
 
-export default async function OwnerDashboard({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
+export default async function OwnerDashboard({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
   const sp = await searchParams;
   const p = await getProfile();
   const sb = await supabaseServer();
@@ -59,12 +59,12 @@ export default async function OwnerDashboard({ searchParams }: { searchParams: P
 
   return (
     <>
-      <Flash msg={sp.msg} />
+      <Flash msg={sp.msg} error={sp.error} />
       <PageHead
         title={
           <span className="flex flex-wrap items-center gap-3">
             {shop?.name ?? "Your shop"}
-            {shop && <Badge tone={shop.status}>{shop.status === "approved" ? "Verified by admin" : shop.status === "pending" ? "Pending approval" : "Rejected"}</Badge>}
+            {shop && <Badge tone={shop.status}>{shop.status === "approved" ? "Verified by admin" : shop.status === "pending" ? (shop.permit_url ? "Verification in review" : "Not verified yet") : "Verification declined"}</Badge>}
           </span>
         }
         sub={`${PLAN[plan].name} plan`}

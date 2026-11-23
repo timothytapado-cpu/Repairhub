@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { signIn } from "@/app/actions";
 import { Flash, Logo, LogoFull } from "@/components/ui";
@@ -29,7 +30,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
               <label className="label">Password</label>
               <input className="input !py-3" name="password" type="password" required autoComplete="current-password" placeholder="Your password" />
             </div>
-            <button className="btn-primary w-full !py-3">Sign in</button>
+            <SubmitButton className="btn-primary w-full !py-3">Sign in</SubmitButton>
           </form>
           <div className="my-5 flex items-center gap-3 text-sm text-ink-soft">
             <span className="h-px flex-1 bg-line" />

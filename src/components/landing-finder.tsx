@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ShopMap } from "./shop-map";
 import { OpenPill } from "./open-pill";
-import { LogoFull } from "./ui";
+import { LogoFull, VerifiedBadge } from "./ui";
 import { useFinder, type Filter, type FinderShop } from "./use-finder";
 import { fmtDistance, peso } from "@/lib/util";
 
@@ -12,6 +12,7 @@ const FILTERS: [Filter, string][] = [
   ["screen", "Screen"],
   ["battery", "Battery"],
   ["open", "Open now"],
+  ["verified", "Verified only"],
 ];
 
 /** Landing page body (hero search, numbered shop list, numbered map, "closer look" panel), laid out like the Figma. */
@@ -61,7 +62,7 @@ export function LandingFinder({ shops }: { shops: FinderShop[] }) {
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight">Repair shops near {f.me?.label && f.me.label !== "Near you" ? f.me.label : "you"}</h2>
             <p className="muted mt-1">
-              {f.list.length} verified shop{f.list.length === 1 ? "" : "s"} {f.me ? "in this area · sorted by nearest" : "on the platform · use your location to sort by distance"}
+              {f.list.length} shop{f.list.length === 1 ? "" : "s"} · {f.list.filter((s) => s.verified).length} verified {f.me ? "· sorted by nearest" : "· use your location to sort by distance"}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -83,7 +84,10 @@ export function LandingFinder({ shops }: { shops: FinderShop[] }) {
                   <div className="flex items-start gap-3">
                     <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-base font-extrabold text-white ${on ? "bg-brand" : "bg-navy"}`}>{i + 1}</span>
                     <div className="min-w-0">
-                      <h3 className="text-lg font-extrabold leading-tight">{s.name}</h3>
+                      <h3 className="flex flex-wrap items-center gap-2 text-lg font-extrabold leading-tight">
+                        {s.name}
+                        {s.verified && <VerifiedBadge />}
+                      </h3>
                       <p className="muted">
                         {s.rating != null ? `${s.rating.toFixed(1)} (${s.reviews} review${s.reviews === 1 ? "" : "s"})` : "No reviews yet"}
                         {s.distance != null ? ` · ${fmtDistance(s.distance)} away` : ""}
@@ -115,7 +119,7 @@ export function LandingFinder({ shops }: { shops: FinderShop[] }) {
             <div className="sticky top-4">
               <div className="relative">
                 <ShopMap shops={pins} me={f.me} height={560} selectedId={sel?.id} onSelect={setSelectedId} />
-                <span className="pointer-events-none absolute left-3 top-3 z-[500] rounded-full bg-white px-3.5 py-1.5 text-sm font-bold shadow">{f.me?.label ? `Near ${f.me.label === "Near you" ? "your location" : f.me.label}` : "All verified shops"}</span>
+                <span className="pointer-events-none absolute left-3 top-3 z-[500] rounded-full bg-white px-3.5 py-1.5 text-sm font-bold shadow">{f.me?.label ? `Near ${f.me.label === "Near you" ? "your location" : f.me.label}` : "All shops"}</span>
               </div>
               <p className="muted mt-3">Numbers on the map match the list. Tap a pin or a card to see that shop below.</p>
             </div>
@@ -129,7 +133,7 @@ export function LandingFinder({ shops }: { shops: FinderShop[] }) {
                 <p className="eyebrow text-brand-600">A closer look before you go</p>
                 <h3 className="mt-1 text-2xl font-extrabold">{sel.name}</h3>
                 <p className="muted">
-                  Verified shop{sel.rating != null ? ` · ${sel.rating.toFixed(1)} of 5 from ${sel.reviews} review${sel.reviews === 1 ? "" : "s"}` : ""}
+                  {sel.verified ? "Verified shop" : "Shop"}{sel.rating != null ? ` · ${sel.rating.toFixed(1)} of 5 from ${sel.reviews} review${sel.reviews === 1 ? "" : "s"}` : ""}
                   {sel.distance != null ? ` · ${fmtDistance(sel.distance)} from you` : ""}
                 </p>
               </div>

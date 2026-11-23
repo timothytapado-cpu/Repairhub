@@ -21,6 +21,19 @@ export function Badge({ tone, children }: { tone: string; children?: React.React
   return <span className={`badge ${TONE[tone] ?? "bg-[#e9ecf8] text-ink"}`}>{children ?? STATUS_LABEL[tone] ?? tone}</span>;
 }
 
+/** The "Verified" badge customers see. Only shops whose permit an admin approved get it. */
+export function VerifiedBadge({ className = "" }: { className?: string }) {
+  return (
+    <span title="Verified by the platform admin: this shop's business permit was checked" className={`badge gap-1 bg-brand-50 text-brand-600 ${className}`}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2.5l8 3v6.2c0 4.7-3.2 8.6-8 9.8-4.8-1.2-8-5.1-8-9.8V5.5l8-3z" fill="#2f5bff" />
+        <path d="M8.2 12.2l2.7 2.7 5-5.3" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      Verified
+    </span>
+  );
+}
+
 /** Compact brand mark (logo icon + name). `light` = shown on a dark/navy background. */
 export function Logo({ light, name = "Mobile RepairHub" }: { light?: boolean; name?: string }) {
   return (

@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { requireRole } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { TopBar } from "@/components/shell";
@@ -36,15 +37,15 @@ export default async function CustomerLayout({ children }: { children: React.Rea
                 )}
                 {unread > 0 && (
                   <form action={markNotificationsRead} className="mt-3">
-                    <button className="btn-outline w-full !py-1.5">Mark all read</button>
+                    <SubmitButton className="btn-outline w-full !py-1.5">Mark all read</SubmitButton>
                   </form>
                 )}
               </div>
             </details>
             <form action={signOut}>
-              <button className="text-sm font-bold text-ink-soft hover:text-ink">
+              <SubmitButton className="text-sm font-bold text-ink-soft hover:text-ink">
                 {short} · Log out
-              </button>
+              </SubmitButton>
             </form>
           </>
         }

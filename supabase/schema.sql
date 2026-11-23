@@ -26,6 +26,7 @@ create table shops (
   lat double precision,
   lng double precision,
   phone text default '',
+  email text not null default '',
   hours text default 'Mon-Sat 9:00 AM - 6:00 PM',
   plan plan_type not null default 'basic',
   plan_paid_until date,
@@ -172,9 +173,8 @@ create policy "update own" on profiles for update using (id = auth.uid() or my_r
 create policy "owner updates staff" on profiles for update using (my_role()='owner' and shop_id = my_shop());
 
 -- shops: public can see approved ones
-create policy "public approved shops" on shops for select using (
-  status = 'approved' or owner_id = auth.uid() or my_role() = 'admin' or id = my_shop()
-);
+-- Every shop is public. Documents only decide the Verified badge (status = 'approved'); a declined shop stays visible.
+create policy "public shops" on shops for select using (true);
 create policy "owner creates shop" on shops for insert with check (owner_id = auth.uid());
 create policy "owner updates shop" on shops for update using (owner_id = auth.uid() or my_role() = 'admin');
 
@@ -228,7 +228,9 @@ create trigger profiles_guard before update on profiles for each row execute fun
 create or replace function guard_shop() returns trigger language plpgsql security definer set search_path=public as $$
 begin
   if auth.uid() is not null and coalesce(my_role()::text,'') <> 'admin' then
-    new.status := old.status; new.rejection_note := old.rejection_note; new.owner_id := old.owner_id;
+    -- an owner may resubmit a rejected shop (rejected -> pending); every other status change is admin-only
+    if not (old.status = 'rejected' and new.status = 'pending') then new.status := old.status; end if;
+    new.rejection_note := old.rejection_note; new.owner_id := old.owner_id;
   end if;
   return new;
 end $$;
